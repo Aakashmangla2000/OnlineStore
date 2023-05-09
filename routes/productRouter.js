@@ -2,6 +2,7 @@ const router = require("express").Router();
 
 const productDb = require("../models/product")
 const DB = require("../db")
+const queryBuilder = require("../validations/queryBuilder")
 
 const validateId = require("../middleware/validateId")
 const productValidations = require("../validations/productValidation")
@@ -20,24 +21,10 @@ const filter = async ({ name, price, quantity }) => {
         .where((qb) => {
             if (name)
                 qb.where('name', 'like', `%${name}%`);
-            if (price) {
-                const { gt, lt, eq } = price;
-                if (gt)
-                    qb.where('price', '>', gt);
-                else if (lt)
-                    qb.where('price', '<', lt);
-                else if (eq)
-                    qb.where('price', '=', eq);
-            }
-            if (quantity) {
-                const { gt, lt, eq } = quantity;
-                if (gt)
-                    qb.where('quantity', '>', gt);
-                else if (lt)
-                    qb.where('quantity', '<', lt);
-                else if (eq)
-                    qb.where('quantity', '=', eq);
-            }
+            if (price)
+                queryBuilder.filter(qb, price, '"price"')
+            if (quantity)
+                queryBuilder.filter(qb, quantity, '"quantity"')
         }).orderBy('id');
     return fitleredProducts
 }
@@ -78,7 +65,7 @@ router.post("/upsert", async (req, res) => {
             flag = flag.length > 0 ? flag : undefined
         }
         const product = await productDb.upsertProduct(newProduct);
-        res.status(201).json({ status: product[0].optype === 'insert' ? "Successfully added new product" : "Updated product details", product });
+        res.status(201).json({ status: product[0].opType === 'insert' ? "Successfully added new product" : "Updated product details", product });
     } catch (err) {
         res.status(500).json({ err: err });
     }

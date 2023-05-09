@@ -1,11 +1,12 @@
 const DB = require('../db');
 
 const find = () =>
-    DB.select(DB.raw(`o.id,o."userId",o."createdAt",o."totalPrice",o."location",array_agg(distinct x.v || jsonb_build_object('name', p."name") || jsonb_build_object('description', p."description")) as productDetails`))
+    DB.select(DB.raw(`o.id,o."userId",o."createdAt",o."totalPrice",o."location",array_agg(distinct x.v || jsonb_build_object('name', p."name") || jsonb_build_object('description', p."description")) as "productDetails"`))
         .from(DB.raw('"order" as o'))
         .crossJoin(DB.raw(`lateral unnest(o."productDetails") as x(v)`))
         .join(DB.raw(`product as p`), DB.raw(`p.id`), '=', DB.raw(`cast(x.v->>'productId' as integer)`))
-        .groupBy('o.id');
+        .groupBy('o.id')
+        .orderBy('id');
 
 const findAll = (userId) => find().where(DB.raw(`o."userId"`), userId);
 

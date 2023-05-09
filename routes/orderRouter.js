@@ -3,6 +3,7 @@ const router = require("express").Router();
 const orderDb = require("../models/order")
 const productDb = require("../models/product")
 const DB = require("../db")
+const queryBuilder = require("../validations/queryBuilder")
 
 const validateId = require("../middleware/validateId")
 const orderValidations = require("../validations/orderValidation")
@@ -23,52 +24,18 @@ const filter = async ({ createdAt, totalPrice, productsId, productsPrice, produc
     }
     const fitleredProducts = orderDb.findAll(userId)
         .where((qb) => {
-            if (createdAt) {
-                const { gt, lt, eq, bt } = createdAt;
-                if (gt)
-                    qb.where('createdAt', '>', new Date(gt));
-                else if (lt)
-                    qb.where('createdAt', '<', new Date(lt));
-                else if (eq)
-                    qb.where('createdAt', '=', new Date(eq));
-                else if (bt) {
-                    dts = bt.split(',').map(dt => new Date(dt))
-                    qb.whereBetween('createdAt', [dts[0], dts[1]])
-                }
-            }
-            if (totalPrice) {
-                const { gt, lt, eq } = totalPrice;
-                if (gt)
-                    qb.where('totalPrice', '>', gt);
-                else if (lt)
-                    qb.where('totalPrice', '<', lt);
-                else if (eq)
-                    qb.where('totalPrice', '=', eq);
-            }
-            if (productsId) {
+            if (createdAt)
+                queryBuilder.filter(qb, createdAt, '"createdAt"', true)
+            if (totalPrice)
+                queryBuilder.filter(qb, totalPrice, '"totalPrice"')
+            if (productsId)
                 qb.whereIn(DB.raw(`x.v->>'productId'`), productsId)
-            }
-            if (productsPrice) {
-                const { gt, lt, eq } = productsPrice;
-                if (gt)
-                    qb.where(DB.raw(`x.v->'price'`), '>', gt);
-                else if (lt)
-                    qb.where(DB.raw(`x.v->'price'`), '<', lt);
-                else if (eq)
-                    qb.where(DB.raw(`x.v->'price'`), '=', eq);
-            }
-            if (productsQuantity) {
-                const { gt, lt, eq } = productsQuantity;
-                if (gt)
-                    qb.where(DB.raw(`x.v->'quantity'`), '>', gt);
-                else if (lt)
-                    qb.where(DB.raw(`x.v->'quantity'`), '<', lt);
-                else if (eq)
-                    qb.where(DB.raw(`x.v->'quantity'`), '=', eq);
-            }
-            if (latitude && longitude && distance) {
+            if (productsPrice)
+                queryBuilder.filter(qb, productsPrice, `x.v->'price'`)
+            if (productsQuantity)
+                queryBuilder.filter(qb, productsQuantity, `x.v->'quantity'`)
+            if (latitude && longitude && distance)
                 qb.where(DB.raw(`ST_DWithin(o.location, ST_GeomFromText('POINT(${longitude} ${latitude})'), ${distance})`), '=', true);
-            }
         });
     return fitleredProducts
 }
@@ -151,7 +118,7 @@ router.put("/:id", validateId, async (req, res) => {
         else {
             if (prevOrder.userId == userId) {
                 Promise.all(updatedProductDetails.map(async (updatedProduct) => {
-                    const prevProd = prevOrder.productdetails.find(p => p.productId == updatedProduct.productId)
+                    const prevProd = prevOrder.productDetails.find(p => p.productId == updatedProduct.productId)
                     if (!prevProd || updatedProduct.quantity == 0)
                         throw 'Product id is not valid / Invalid Quantity'
                     const [product] = await DB('product')
@@ -167,7 +134,7 @@ router.put("/:id", validateId, async (req, res) => {
                     const newOrder = await DB.transaction(async trx => {
                         updatedProductDetails.forEach(async (updatedProduct) => {
                             const product = products.find(p => p.id == updatedProduct.productId);
-                            const prevProd = prevOrder.productdetails.find(p => p.productId == updatedProduct.productId)
+                            const prevProd = prevOrder.productDetails.find(p => p.productId == updatedProduct.productId)
                             updatedProduct.price = product.price;
                             let inc = 0;
                             if (prevProd)

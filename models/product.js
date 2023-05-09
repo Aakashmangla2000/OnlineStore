@@ -10,7 +10,7 @@ const updateProduct = (id, updatedDetails) => DB('product').returning("*").where
 
 const upsertProduct = (updatedDetails) => {
     return DB("product")
-        .returning(DB.raw(`*, case when xmax::text::int > 0 then 'update' else 'insert' end opType`))
+        .returning(DB.raw(`*, case when xmax::text::int > 0 then 'update' else 'insert' end "opType"`))
         .insert(updatedDetails)
         .onConflict("id")
         .merge()
