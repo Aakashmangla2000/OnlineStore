@@ -68,28 +68,40 @@ router.post("/", async (req, res) => {
         return res.status(400).json({ error: errors });
     }
     const { latitude, longitude } = location;
-    Promise.all(productDetails.map(async (product) => {
-        const [prod] = await DB('product')
-            .where('quantity', '>', product.quantity)
-            .where('id', product.productId);
-        if (!prod || product.quantity == 0)
-            throw 'Product id is not valid / Stock not available'
-        return prod[0];
-    })).then(async (products) => {
-        const order = await DB.transaction(async trx => {
-            productDetails.forEach(async (product) => {
-                const prod = products.find(p => p.id == product.productId);
-                product.price = prod.price;
-                await trx('product')
-                    .where({ id: prod.id })
-                    .update({ quantity: prod.quantity - product.quantity });
-            })
-            return await trx("order").insert({ totalPrice, productDetails, location: `POINT(${longitude} ${latitude})`, userId }).returning("*");
+    const ids = productDetails.map(p => p.productId)
+    const products = await DB('product')
+        .whereIn('id', ids)
+        .then(async products => {
+            try {
+                if (productDetails.length !== products.length)
+                    throw 'Product ids are not valid'
+                else {
+                    productDetails.map((product) => {
+                        const result = products.find(p => p.id == product.productId)
+                        console.log(result)
+                        if (result.quantity < product.quantity)
+                            throw 'Stock not available'
+                        else if (product.quantity == 0)
+                            throw 'Quantity invalid'
+                        return result;
+                    })
+                    const order = await DB.transaction(async trx => {
+                        productDetails.forEach(async (product) => {
+                            const prod = products.find(p => p.id == product.productId);
+                            product.price = prod.price;
+                            await trx('product')
+                                .where({ id: prod.id })
+                                .update({ quantity: prod.quantity - product.quantity });
+                        })
+                        return await trx("order").insert({ totalPrice, productDetails, location: `POINT(${longitude} ${latitude})`, userId }).returning("*");
+                    })
+                    res.status(201).json({ status: "Successfully added new order", data: order });
+                }
+            }
+            catch (err) {
+                res.status(404).json({ err: err });
+            }
         })
-        res.status(201).json({ status: "Successfully added new order", data: order });
-    }).catch((err) => {
-        res.status(404).json({ err: err });
-    })
 });
 
 router.put("/:id", validateId, async (req, res) => {
