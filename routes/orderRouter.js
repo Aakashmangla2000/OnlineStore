@@ -69,7 +69,7 @@ router.post("/", async (req, res) => {
     }
     const { latitude, longitude } = location;
     const ids = productDetails.map(p => p.productId)
-    const products = await DB('product')
+    await DB('product')
         .whereIn('id', ids)
         .then(async products => {
             try {
@@ -78,7 +78,6 @@ router.post("/", async (req, res) => {
                 else {
                     productDetails.map((product) => {
                         const result = products.find(p => p.id == product.productId)
-                        console.log(result)
                         if (result.quantity < product.quantity)
                             throw 'Stock not available'
                         else if (product.quantity == 0)
@@ -99,7 +98,7 @@ router.post("/", async (req, res) => {
                 }
             }
             catch (err) {
-                res.status(404).json({ err: err });
+                res.status(400).json({ err: err });
             }
         })
 });
@@ -129,44 +128,63 @@ router.put("/:id", validateId, async (req, res) => {
             res.status(404).json({ message: `No order with id ${orderId} found` });
         else {
             if (prevOrder.userId == userId) {
-                Promise.all(updatedProductDetails.map(async (updatedProduct) => {
-                    const prevProd = prevOrder.productDetails.find(p => p.productId == updatedProduct.productId)
-                    if (!prevProd || updatedProduct.quantity == 0)
-                        throw 'Product id is not valid / Invalid Quantity'
-                    const [product] = await DB('product')
-                        .where('id', updatedProduct.productId)
-                        .where((qb) => {
-                            if (prevProd && updatedProduct.quantity > prevProd.quantity)
-                                qb.where('quantity', '>', updatedProduct.quantity - prevProd.quantity);
+                const ids = updatedProductDetails.map(p => p.productId)
+                await DB('product')
+                    .whereIn('id', ids)
+                    .then(async (products) => {
+                        if (updatedProductDetails.length !== products.length)
+                            throw 'Product ids are not valid'
+                        else {
+                            updatedProductDetails.map((updatedProduct) => {
+                                const result = products.find(p => p.id == updatedProduct.productId)
+                                const prevProd = prevOrder.productDetails.find(p => p.productId == updatedProduct.productId)
+                                if (prevProd && updatedProduct.quantity > prevProd.quantity) {
+                                    if (result.quantity < (updatedProduct.quantity - prevProd.quantity))
+                                        throw 'Stock not available'
+                                }
+                                else if (updatedProduct.quantity == 0)
+                                    throw 'Quantity invalid'
+                                return result;
+                            });
+                        }
+                        const newOrder = await DB.transaction(async trx => {
+                            updatedProductDetails.forEach(async (updatedProduct) => {
+                                const product = products.find(p => p.id == updatedProduct.productId);
+                                let index = -1;
+                                const prevProd = prevOrder.productDetails.find((p, ind) => { if (p.productId == updatedProduct.productId) { index = ind; return true; } });
+                                updatedProduct.price = product.price;
+                                let inc = 0;
+                                if (prevProd) {
+                                    prevOrder.productDetails.splice(index, 1)
+                                    inc = prevProd.quantity
+                                }
+                                await trx('product')
+                                    .where({ id: updatedProduct.productId })
+                                    .update({ quantity: product.quantity - updatedProduct.quantity + inc });
+                            })
+                            if (prevOrder.productDetails.length > 0) {
+                                const ids = prevOrder.productDetails.map(p => p.productId)
+                                await DB('product')
+                                    .whereIn('id', ids)
+                                    .then(async (products) => {
+                                        prevOrder.productDetails.forEach(async (prevProduct) => {
+                                            const product = products.find(p => p.id == prevProduct.productId);
+                                            await trx('product')
+                                                .where({ id: prevProduct.productId })
+                                                .update({ quantity: product.quantity + prevProduct.quantity });
+                                        })
+                                    })
+                            }
+                            return await trx("order").update(updatedOrder).where('id', orderId).returning("*");
                         })
-                    if (!product)
-                        throw 'Stock not available'
-                    return product;
-                })).then(async (products) => {
-                    const newOrder = await DB.transaction(async trx => {
-                        updatedProductDetails.forEach(async (updatedProduct) => {
-                            const product = products.find(p => p.id == updatedProduct.productId);
-                            const prevProd = prevOrder.productDetails.find(p => p.productId == updatedProduct.productId)
-                            updatedProduct.price = product.price;
-                            let inc = 0;
-                            if (prevProd)
-                                inc = prevProd.quantity
-                            await trx('product')
-                                .where({ id: updatedProduct.productId })
-                                .update({ quantity: product.quantity - updatedProduct.quantity + inc });
-                        })
-                        return await trx("order").update(updatedOrder).where('id', orderId).returning("*");
+                        res.status(200).json({ status: `Successfully updated order with id ${orderId}`, data: newOrder });
                     })
-                    res.status(200).json({ status: `Successfully updated order with id ${orderId}`, data: newOrder });
-                }).catch((err) => {
-                    res.status(404).json({ err: err });
-                })
             } else {
                 res.status(403).json({ message: "Not Authorised" });
             }
         }
     } catch (err) {
-        res.status(500).json({ err: err });
+        res.status(400).json({ err: err });
     }
 });
 
