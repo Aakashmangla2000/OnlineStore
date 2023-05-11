@@ -1,0 +1,20 @@
+# fly.toml app configuration file generated for onlinestore-expressjs on 2023-05-11T12:54:50+05:30
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = "onlinestore-expressjs"
+primary_region = "sin"
+
+[env]
+  PORT = "8080"
+  DATABASE_ENVIRONMENT = "production"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+
+[deploy]
+  release_command = "npx knex migrate:latest"

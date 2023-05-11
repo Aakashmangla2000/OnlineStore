@@ -4,7 +4,8 @@ pg_dump -U postgres -h localhost -p 5432 -t "customer" -t "order" -t "product" -
 pg_dump -U postgres -h localhost -p 5432 onlinestore > onlinestore.sql
 
 psql -U myuser -h localhost -p 5432 onlinestore < onlinestore.sql
-psql -U myuser -h localhost -p 5432 onlinestore < onlinestoredata.sql
+psql -U myuser -h localhost -p 5435 onlinestore-expressjs-db
+ < onlinestoredata.sql
 
 
 

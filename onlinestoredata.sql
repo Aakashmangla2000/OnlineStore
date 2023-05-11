@@ -56,7 +56,7 @@ COPY public."order" (id, "userId", "createdAt", "totalPrice", "productDetails", 
 36	1	2023-05-05 15:25:51.150577+05:30	1000.00	{"{\\"price\\": 1000, \\"quantity\\": 200, \\"productId\\": 1}","{\\"price\\": 1000, \\"quantity\\": 5, \\"productId\\": 2}"}	0101000020E6100000EF6C34257E4753402618737C59B73C40
 41	1	2023-05-05 17:38:47.519361+05:30	1000.00	{"{\\"price\\": 1000, \\"quantity\\": 10, \\"productId\\": 2}"}	0101000020E6100000EF6C34257E4753402618737C59B73C40
 1	11	2023-05-02 14:53:40.437+05:30	2500.00	{"{\\"price\\": 1000, \\"quantity\\": 2, \\"productId\\": 1}","{\\"price\\": 500, \\"quantity\\": 1, \\"productId\\": 2}"}	0101000020E61000003CDBA337DCC351C06D37C1374D374840
-34	1	2023-05-05 15:08:14.324269+05:30	1000.00	{"{\\"price\\": \\"1000.00\\", \\"quantity\\": 1000, \\"productId\\": 1}","{\\"price\\": \\"500.00\\", \\"quantity\\": 10, \\"productId\\": 2}"}	0101000020E6100000EF6C34257E4753402618737C59B73C40
+34	1	2023-05-05 15:08:14.324269+05:30	1000.00	{"{\\"price\\": \\"1000.00\\", \\"quantity\\": 1150, \\"productId\\": 1}"}	0101000020E6100000EF6C34257E4753402618737C59B73C40
 42	1	2023-05-05 17:43:14.581239+05:30	1000.00	{"{\\"price\\": 1000, \\"quantity\\": 10, \\"productId\\": 2}"}	0101000020E6100000EF6C34257E4753402618737C59B73C40
 43	1	2023-05-05 17:48:32.563431+05:30	1000.00	{"{\\"price\\": 1000, \\"quantity\\": 10, \\"productId\\": 2}"}	0101000020E6100000EF6C34257E4753402618737C59B73C40
 44	1	2023-05-05 17:48:55.534117+05:30	1000.00	{"{\\"price\\": 1000, \\"quantity\\": 10, \\"productId\\": 2}"}	0101000020E6100000EF6C34257E4753402618737C59B73C40
@@ -72,24 +72,24 @@ COPY public."order" (id, "userId", "createdAt", "totalPrice", "productDetails", 
 --
 
 COPY public.product (id, name, description, price, quantity) FROM stdin;
+1	Product 1	This is description for 1	1000.00	50
+3	Product 3	This is description	5000.00	8
 8	Product 8	This is description for 8	10.00	200
 6	Product 9	This is description for 9	10.00	200
 9	Product 9	This is description for 9	10.00	200
 10	Product 10	This is description for 10	1000.00	200
 11	Product 11	This is description for 11	150.00	200
 5	Product 5	This is new description for 5	100.00	99
-3	Product 3	This is description	5000.00	8
 12	Product 1	This is description	1000.00	100
-1	Product 1	This is description for 1	1000.00	200
 13	Pizza	This is description	1000.00	100
 14	Burger	This is description	500.00	100
 15	Pasta	This is description	500.00	100
 16	Mojito	This is description	500.00	100
 17	Fries	This is new description	200.00	50
-2	Product 2	This is description	500.00	110
 4	Product 4	This is description	750.00	77
 7	Product 7	This is description for 7	10.00	196
 18	Chocolate	This is chocolate	100.00	100
+2	Product 2	This is description	500.00	120
 \.
 
 

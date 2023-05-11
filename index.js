@@ -6,7 +6,7 @@ const session = require('express-session')
 const DB = require('./db');
 
 const app = express()
-const port = 3000
+// const port = 3000
 
 const auth = require("./middleware/auth")
 const productRouter = require("./routes/productRouter")
@@ -22,6 +22,6 @@ app.use("/api/products", productRouter);
 app.use("/api/orders", auth, orderRouter);
 app.use("/api/users", userRouter);
 
-app.listen(port, () => {
-    console.log(`Example app listening on port ${port}`)
+app.listen({ port: process.env.PORT || "8080", host: "0.0.0.0" }, () => {
+    console.log(`Example app listening on port ${process.env.PORT}`)
 })
