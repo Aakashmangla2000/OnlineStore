@@ -34,7 +34,7 @@ router.get("/session", async (req, res) => {
 router.get("/login", async (req, res) => {
     const { username, password } = req.body
     const error = reqBodyValidations.validateUsernamePass(username, password)
-    if (error) {
+    if (error.length > 0) {
         return res.status(400).json({ error });
     }
     try {
@@ -84,9 +84,9 @@ router.get("/:id", validateId, async (req, res) => {
 
 router.post("/signup", async (req, res) => {
     const { firstName, lastName, phone, address, username, password } = req.body
-    const error = reqBodyValidations.validate(firstName, lastName, phone, address, username, password)
-    if (error) {
-        return res.status(400).json({ error });
+    const errors = reqBodyValidations.validate(firstName, lastName, phone, address, username, password)
+    if (errors.length > 0) {
+        return res.status(400).json({ error: errors });
     }
     bcrypt.hash(password, 10).then(async (hashedPassword) => {
         try {
@@ -107,7 +107,7 @@ router.put("/updatePassword/:id", validateId, async (req, res) => {
     const userId = req.params.id
     const { oldPassword, newPassword } = req.body
     const error = reqBodyValidations.validatePasswords(oldPassword, newPassword)
-    if (error) {
+    if (error.length > 0) {
         return res.status(400).json({ error });
     }
     try {
@@ -137,7 +137,7 @@ router.put("/:id", validateId, async (req, res) => {
     const userId = req.params.id
     const { firstName, lastName, phone, address } = req.body
     const error = reqBodyValidations.updateUser(firstName, lastName, phone, address)
-    if (error) {
+    if (error.length > 0) {
         return res.status(400).json({ error });
     }
     try {

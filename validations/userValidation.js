@@ -1,57 +1,61 @@
 const validate = (firstName, lastName, phone, address, username, password) => {
+    const errors = []
     if (!firstName || typeof firstName !== 'string' || firstName.length > 50) {
-        return 'Invalid first name';
+        errors.push('Invalid first name');
     }
     if (lastName && (typeof lastName !== 'string' || lastName.length > 50)) {
-        return 'Invalid last name';
+        errors.push('Invalid last name');
     }
     if (!phone || typeof phone !== 'string') {
-        return 'Invalid phone number';
+        errors.push('Invalid phone number');
     }
     if (!address || typeof address !== 'string') {
-        return 'Invalid address';
+        errors.push('Invalid address');
     }
-    return validateUsernamePass(username, password);
+    return validateUsernamePass(username, password, errors);
 }
 
-const validateUsernamePass = (username, password) => {
+const validateUsernamePass = (username, password, errors = []) => {
     if (!username || typeof username !== 'string') {
-        return 'Invalid username';
+        errors.push('Invalid username');
     }
     if (!password || typeof password !== 'string') {
-        return 'Invalid password';
+        errors.push('Invalid password');
     }
-    return null;
+    return errors;
 }
 
 const validatePasswords = (oldPassword, newPassword) => {
+    const errors = []
     if (!oldPassword || typeof oldPassword !== 'string') {
-        return 'Invalid oldPassword';
+        errors.push('Invalid oldPassword');
     }
     if (!newPassword || typeof newPassword !== 'string') {
-        return 'Invalid newPassword';
+        errors.push('Invalid newPassword');
     }
-    return null;
+    return errors;
 }
 
 const updateUser = (firstName, lastName, phone, address) => {
+    const errors = []
     if (firstName && (typeof firstName !== 'string' || firstName.length > 50)) {
-        return 'Invalid first name';
+        errors.push('Invalid first name');
     }
     if (lastName && (typeof lastName !== 'string' || lastName.length > 50)) {
-        return 'Invalid last name';
+        errors.push('Invalid last name');
     }
     if (phone && typeof phone !== 'string') {
-        return 'Invalid phone number';
+        errors.push('Invalid phone number');
     }
     if (address && typeof address !== 'string') {
-        return 'Invalid address';
+        errors.push('Invalid address');
     }
-    return null
+    return errors;
 }
 
 module.exports = {
     validate,
     validateUsernamePass,
-    updateUser
+    updateUser,
+    validatePasswords
 }
