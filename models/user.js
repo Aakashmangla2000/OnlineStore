@@ -6,6 +6,10 @@ const findById = (id) => DB('customer').select("id", "username", "firstName", "l
 
 const findByUsername = (username) => DB('customer').select("id", "username", "password").where("username", username).andWhere("deletedAt", null);
 
+const getUserRole = (userId) => DB("userRoles").select().where("userId", userId);
+
+const addUserRole = (userId) => DB("userRoles").insert({ userId, roleId: 1 }).returning("*");
+
 const addUser = (user) => DB('customer').insert(user).returning("*");
 
 const updateUser = (id, updatedDetails) => DB('customer').where("id", id).where("deletedAt", null).update(updatedDetails)
@@ -18,5 +22,7 @@ module.exports = {
     addUser,
     updateUser,
     deleteById,
-    findByUsername
+    findByUsername,
+    getUserRole,
+    addUserRole
 }

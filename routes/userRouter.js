@@ -3,7 +3,6 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken")
 
 const userDb = require("../models/user")
-const DB = require("../db")
 const validateId = require("../middleware/validateId")
 const reqBodyValidations = require("../validations/userValidation")
 const auth = require("../middleware/auth")
@@ -19,7 +18,7 @@ router.get("/", auth, authorize(roles.ADMIN), async (req, res) => {
     }
 });
 
-function generateAccessToken({ username, userId, roleId }) {
+const generateAccessToken = ({ username, userId, roleId }) => {
     return jwt.sign(user = { username, userId, roleId }, process.env.TOKEN_SECRET, { expiresIn: '1800s' });
 }
 
@@ -37,9 +36,9 @@ router.get("/login", async (req, res) => {
                 if (!result)
                     res.status(401).json({ message: "Wrong Password" });
                 else {
-                    let [userRole] = await DB("userRoles").select().where("userId", user.id)
+                    let [userRole] = await userDb.getUserRole(user.id);
                     if (!userRole) {
-                        [userRole] = await DB("userRoles").insert({ userId: user.id, roleId: 1 }).returning("*")
+                        [userRole] = await userDb.addUserRole(user.id);
                     }
                     const token = generateAccessToken({ username, userId: user.id, roleId: userRole.roleId });
                     res.status(200).json({ status: `Welcome ${username}`, token });
@@ -50,22 +49,9 @@ router.get("/login", async (req, res) => {
     }
 });
 
-// router.get("/logout", async (req, res) => {
-//     const userId = req.session.userId
-//     if (userId)
-//         try {
-//             delete req.session.userId;
-//             res.status(200).json({ status: `User logged out successfully` });
-//         } catch (err) {
-//             res.status(500).json({ err: err });
-//         }
-//     else
-//         res.status(404).json({ status: `No user is logged in` });
-// });
-
 router.get("/:id", auth, validateId, async (req, res) => {
     const userId = req.params.id
-    if (userId == req.user.userId)
+    if (userId == req.user.userId || req.user.roleId == roles.ADMIN)
         try {
             const [user] = await userDb.findById(userId);
             if (!user)
@@ -92,7 +78,8 @@ router.post("/signup", async (req, res) => {
             const user = await userDb.findByUsername(username);
             if (user.length === 0) {
                 const [user] = await userDb.addUser({ firstName, lastName, phone, address, username, password: hashedPassword });
-                const token = generateAccessToken({ username, userId: user.id });
+                const [userRole] = await userDb.addUserRole(user.id);
+                const token = generateAccessToken({ username, userId: user.id, roleId: userRole.roleId });
                 res.status(201).json({ status: "Successfully added new user", token });
             }
             else
@@ -139,12 +126,15 @@ router.put("/:id", auth, validateId, async (req, res) => {
     if (error.length > 0) {
         return res.status(400).json({ error });
     }
-    try {
-        const user = await userDb.updateUser(userId, { firstName, lastName, phone, address });
-        res.status(201).json({ status: `Successfully updated user with id ${userId}` });
-    } catch (err) {
-        res.status(500).json({ err: err });
-    }
+    if (userId == req.user.userId || req.user.roleId == roles.ADMIN)
+        try {
+            const user = await userDb.updateUser(userId, { firstName, lastName, phone, address });
+            res.status(201).json({ status: `Successfully updated user with id ${userId}` });
+        } catch (err) {
+            res.status(500).json({ err: err });
+        }
+    else
+        res.status(403).json({ message: "Not allowed!" });
 });
 
 router.delete("/:id", auth, authorize(roles.ADMIN), validateId, async (req, res) => {
