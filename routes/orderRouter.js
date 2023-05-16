@@ -2,45 +2,22 @@ const router = require("express").Router();
 
 const orderDb = require("../models/order")
 const DB = require("../db")
-const queryBuilder = require("../validations/queryBuilder")
 
 const validateId = require("../middleware/validateId")
-const orderValidations = require("../validations/orderValidation")
 const authorize = require("../middleware/authorize")
 const roles = require("../middleware/roles")
 
+const orderValidations = require("../validations/orderValidation")
+
 router.get("/", async (req, res) => {
     const userId = req.user.userId
-    console.log(req.user)
     try {
-        const fitleredOrders = await filter(req.query, userId)
+        const fitleredOrders = await orderDb.findAllWithFilters(req.query, userId)
         res.status(200).json({ noOfRows: fitleredOrders.length, data: fitleredOrders });
     } catch (err) {
         res.status(500).json({ err: err });
     }
 });
-
-const filter = async ({ createdAt, totalPrice, productsId, productsPrice, productsQuantity, latitude, longitude, distance }, userId) => {
-    if (productsId) {
-        productsId = productsId.split(',');
-    }
-    const fitleredProducts = orderDb.findAll(userId)
-        .where((qb) => {
-            if (createdAt)
-                queryBuilder.filter(qb, createdAt, '"createdAt"', true)
-            if (totalPrice)
-                queryBuilder.filter(qb, totalPrice, '"totalPrice"')
-            if (productsId)
-                qb.whereIn(DB.raw(`x.v->>'productId'`), productsId)
-            if (productsPrice)
-                queryBuilder.filter(qb, productsPrice, `x.v->'price'`)
-            if (productsQuantity)
-                queryBuilder.filter(qb, productsQuantity, `x.v->'quantity'`)
-            if (latitude && longitude && distance)
-                qb.where(DB.raw(`ST_DWithin(o.location, ST_GeomFromText('POINT(${longitude} ${latitude})'), ${distance})`), '=', true);
-        });
-    return fitleredProducts
-}
 
 router.get("/:id", validateId, async (req, res) => {
     const userId = req.user.userId

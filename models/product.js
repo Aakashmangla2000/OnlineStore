@@ -1,6 +1,18 @@
 const DB = require('../db');
+const queryBuilder = require("../validations/queryBuilder")
 
 const find = () => DB('product').select().orderBy('id');
+
+const findAllWithFilters = ({ name, price, quantity }) => DB('product')
+    .where((qb) => {
+        if (name)
+            qb.where('name', 'like', `%${name}%`);
+        if (price)
+            queryBuilder.filter(qb, price, '"price"')
+        if (quantity)
+            queryBuilder.filter(qb, quantity, '"quantity"')
+    })
+    .orderBy('id');
 
 const findById = (id) => DB('product').select().where("id", id);
 
@@ -24,5 +36,6 @@ module.exports = {
     addProduct,
     updateProduct,
     deleteById,
-    upsertProduct
+    upsertProduct,
+    findAllWithFilters
 }

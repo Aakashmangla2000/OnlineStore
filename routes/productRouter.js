@@ -1,35 +1,22 @@
 const router = require("express").Router();
 
 const productDb = require("../models/product")
-const DB = require("../db")
-const queryBuilder = require("../validations/queryBuilder")
 
 const validateId = require("../middleware/validateId")
-const productValidations = require("../validations/productValidation")
 const authorize = require("../middleware/authorize")
 const roles = require("../middleware/roles")
 
+const productValidations = require("../validations/productValidation")
+
 router.get("/", async (req, res) => {
     try {
-        const fitleredProducts = await filter(req.query)
+        const fitleredProducts = await productDb.findAllWithFilters(req.query)
         res.status(200).json({ noOfRows: fitleredProducts.length, data: fitleredProducts });
     } catch (err) {
         res.status(500).json({ err: err });
     }
 });
 
-const filter = async ({ name, price, quantity }) => {
-    const fitleredProducts = await DB('product')
-        .where((qb) => {
-            if (name)
-                qb.where('name', 'like', `%${name}%`);
-            if (price)
-                queryBuilder.filter(qb, price, '"price"')
-            if (quantity)
-                queryBuilder.filter(qb, quantity, '"quantity"')
-        }).orderBy('id');
-    return fitleredProducts
-}
 
 router.get("/:id", validateId, async (req, res) => {
     const productId = req.params.id
