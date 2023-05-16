@@ -1,0 +1,602 @@
+{
+	"info": {
+		"_postman_id": "da9f8da1-05f1-4f55-9bf6-6c6500d1a76c",
+		"name": "OnlineStore",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Products",
+			"item": [
+				{
+					"name": "Get all products",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{onlinestore_url}}/api/products",
+							"host": [
+								"{{onlinestore_url}}"
+							],
+							"path": [
+								"api",
+								"products"
+							],
+							"query": [
+								{
+									"key": "name",
+									"value": "Product",
+									"disabled": true
+								},
+								{
+									"key": "quantity[gt]",
+									"value": "10",
+									"description": "lt,eq,gt",
+									"disabled": true
+								},
+								{
+									"key": "price[lt]",
+									"value": "1000",
+									"description": "lt,eq,gt",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get by product Id",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{onlinestore_url}}/api/products/:id",
+							"host": [
+								"{{onlinestore_url}}"
+							],
+							"path": [
+								"api",
+								"products",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "New Product",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Chocolate\",\n    \"description\": \"This is chocolate\",\n    \"price\": 100.00,\n    \"quantity\": 100\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{onlinestore_url}}/api/products",
+							"host": [
+								"{{onlinestore_url}}"
+							],
+							"path": [
+								"api",
+								"products"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Upsert Product",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": 17,\n    \"name\": \"Fries\",\n    \"description\": \"This is new description\",\n    \"price\": 200,\n    \"quantity\": 100\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{onlinestore_url}}/api/products/upsert",
+							"host": [
+								"{{onlinestore_url}}"
+							],
+							"path": [
+								"api",
+								"products",
+								"upsert"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Product",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Product 11\",\n    \"description\": \"This is description for 11\",\n    \"price\": 150.00,\n    \"quantity\": 200\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{onlinestore_url}}/api/products/:id",
+							"host": [
+								"{{onlinestore_url}}"
+							],
+							"path": [
+								"api",
+								"products",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "11"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Orders",
+			"item": [
+				{
+					"name": "Get all orders",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{onlinestore_url}}/api/orders",
+							"host": [
+								"{{onlinestore_url}}"
+							],
+							"path": [
+								"api",
+								"orders"
+							],
+							"query": [
+								{
+									"key": "productsId",
+									"value": "1,2",
+									"description": "comma seperated ids",
+									"disabled": true
+								},
+								{
+									"key": "productsPrice[gt]",
+									"value": "900",
+									"description": "lt,eq,gt",
+									"disabled": true
+								},
+								{
+									"key": "productsQuantity[eq]",
+									"value": "5",
+									"description": "lt,eq,gt",
+									"disabled": true
+								},
+								{
+									"key": "createdAt[gt]",
+									"value": "2023-05-03T11:20:07.437Z",
+									"description": "lt,eq,gt",
+									"disabled": true
+								},
+								{
+									"key": "createdAt[bt]",
+									"value": "2023-05-01T11:20:07.437Z,2023-05-05T11:20:07.437Z",
+									"description": "bt comma seperated timestamps",
+									"disabled": true
+								},
+								{
+									"key": "totalPrice[gt]",
+									"value": "2500",
+									"description": "lt,eq,gt",
+									"disabled": true
+								},
+								{
+									"key": "latitude",
+									"value": "28.7162092",
+									"disabled": true
+								},
+								{
+									"key": "longitude",
+									"value": "77.1170743",
+									"disabled": true
+								},
+								{
+									"key": "distance",
+									"value": "100000",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get order by id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{onlinestore_url}}/api/orders/:id",
+							"host": [
+								"{{onlinestore_url}}"
+							],
+							"path": [
+								"api",
+								"orders",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add order",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"totalPrice\": 4000,\n    \"productDetails\": [\n        {\n            \"price\": 1000,\n            \"quantity\": 4,\n            \"productId\": 0\n        },\n        {\n            \"price\": 1000,\n            \"quantity\": 4,\n            \"productId\": 0\n        }\n    ],\n    \"location\": {\n        \"latitude\": 28.7162092,\n        \"longitude\": 77.1170743\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{onlinestore_url}}/api/orders",
+							"host": [
+								"{{onlinestore_url}}"
+							],
+							"path": [
+								"api",
+								"orders"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update order",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"totalPrice\": 1000.00,\n    \"location\": {\n        \"latitude\": 28.7162092,\n        \"longitude\": 77.1170743\n    },\n    \"updatedProductDetails\": [\n        {\n            \"quantity\": 1000,\n            \"productId\": 1\n        },\n        {\n            \"quantity\": 10,\n            \"productId\": 2\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{onlinestore_url}}/api/orders/:id",
+							"host": [
+								"{{onlinestore_url}}"
+							],
+							"path": [
+								"api",
+								"orders",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "34"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Get all users",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{onlinestore_url}}/api/users",
+							"host": [
+								"{{onlinestore_url}}"
+							],
+							"path": [
+								"api",
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get user by id",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{onlinestore_url}}/api/users/:id",
+							"host": [
+								"{{onlinestore_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"test-user-1\",\n    \"password\": \"password\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{onlinestore_url}}/api/users/login",
+							"host": [
+								"{{onlinestore_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{onlinestore_url}}/api/users/logout",
+							"host": [
+								"{{onlinestore_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"logout"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Session",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{onlinestore_url}}/api/users/session",
+							"host": [
+								"{{onlinestore_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"session"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add user",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"firstName\": \"Test User 2\",\n    \"lastName\": \"lastName\",\n    \"phone\": \"9876543210\",\n    \"address\": \"Test User 2 Address\",\n    \"username\": \"test-user-2\",\n    \"password\": \"password\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{onlinestore_url}}/api/users/signup",
+							"host": [
+								"{{onlinestore_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"signup"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update user details",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"firstName\": \"firstName\",\n    \"lastName\": \"lastName\",\n    \"phone\": \"9876543210\",\n    \"address\": \"Test User 1 new Address\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{onlinestore_url}}/api/users/:id",
+							"host": [
+								"{{onlinestore_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update user password",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"oldPassword\": \"password\",\n    \"newPassword\": \"newpassword\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{onlinestore_url}}/api/users/updatePassword/1",
+							"host": [
+								"{{onlinestore_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"updatePassword",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete user",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{onlinestore_url}}/api/users/:id",
+							"host": [
+								"{{onlinestore_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "onlinestore_url",
+			"value": "https://onlinestore-expressjs.fly.dev"
+		}
+	]
+}

@@ -6,6 +6,8 @@ const queryBuilder = require("../validations/queryBuilder")
 
 const validateId = require("../middleware/validateId")
 const productValidations = require("../validations/productValidation")
+const authorize = require("../middleware/authorize")
+const roles = require("../middleware/roles")
 
 router.get("/", async (req, res) => {
     try {
@@ -42,7 +44,7 @@ router.get("/:id", validateId, async (req, res) => {
     }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", authorize(roles.ADMIN), async (req, res) => {
     const { name, description, price, quantity } = req.body
     const errors = productValidations.validate({ name, description, price, quantity });
     if (errors.length != 0) {
@@ -56,7 +58,7 @@ router.post("/", async (req, res) => {
     }
 });
 
-router.post("/upsert", async (req, res) => {
+router.post("/upsert", authorize(roles.ADMIN), async (req, res) => {
     const newProduct = req.body
     try {
         let flag = undefined;
@@ -71,7 +73,7 @@ router.post("/upsert", async (req, res) => {
     }
 });
 
-router.put("/:id", validateId, async (req, res) => {
+router.put("/:id", authorize(roles.ADMIN), validateId, async (req, res) => {
     const productId = req.params.id
     const { name, description, price, quantity } = req.body
     const errors = productValidations.validateOnUpdate({ name, description, price, quantity });
@@ -91,7 +93,7 @@ router.put("/:id", validateId, async (req, res) => {
     }
 });
 
-router.delete("/:id", validateId, async (req, res) => {
+router.delete("/:id", authorize(roles.ADMIN), validateId, async (req, res) => {
     const productId = req.params.id
     try {
         const product = await productDb.deleteById(productId);

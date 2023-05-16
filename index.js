@@ -18,7 +18,7 @@ app.use(cors());
 app.use(express.json());
 app.use(session({ secret: 'Your_Secret_Key', resave: true, saveUninitialized: true }))
 
-app.use("/api/products", productRouter);
+app.use("/api/products", auth, productRouter);
 app.use("/api/orders", auth, orderRouter);
 app.use("/api/users", userRouter);
 

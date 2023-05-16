@@ -1,15 +1,17 @@
 const router = require("express").Router();
 
 const orderDb = require("../models/order")
-const productDb = require("../models/product")
 const DB = require("../db")
 const queryBuilder = require("../validations/queryBuilder")
 
 const validateId = require("../middleware/validateId")
 const orderValidations = require("../validations/orderValidation")
+const authorize = require("../middleware/authorize")
+const roles = require("../middleware/roles")
 
 router.get("/", async (req, res) => {
-    const userId = req.session.userId
+    const userId = req.user.userId
+    console.log(req.user)
     try {
         const fitleredOrders = await filter(req.query, userId)
         res.status(200).json({ noOfRows: fitleredOrders.length, data: fitleredOrders });
@@ -41,7 +43,7 @@ const filter = async ({ createdAt, totalPrice, productsId, productsPrice, produc
 }
 
 router.get("/:id", validateId, async (req, res) => {
-    const userId = req.session.userId
+    const userId = req.user.userId
     const orderId = req.params.id
     try {
         const order = await orderDb.findById(orderId);
@@ -61,7 +63,7 @@ router.get("/:id", validateId, async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-    const userId = req.session.userId;
+    const userId = req.user.userId;
     const { totalPrice, productDetails, location } = req.body
     const errors = orderValidations.validate(totalPrice, productDetails, location);
     if (errors.length != 0) {
@@ -104,7 +106,7 @@ router.post("/", async (req, res) => {
 });
 
 router.put("/:id", validateId, async (req, res) => {
-    const userId = req.session.userId
+    const userId = req.user.userId
     const orderId = req.params.id
     const { totalPrice, updatedProductDetails, location } = req.body
     const errors = orderValidations.validateOnUpdate(totalPrice, updatedProductDetails, location);
@@ -188,14 +190,14 @@ router.put("/:id", validateId, async (req, res) => {
     }
 });
 
-// router.delete("/:id", async (req, res) => {
-//     const orderId = req.params.id
-//     try {
-//         const order = await orderDb.deleteById(orderId);
-//         res.status(201).json({ status: `Successfully deleted order with id ${orderId}` });
-//     } catch (err) {
-//         res.status(500).json({ err: err });
-//     }
-// });
+router.delete("/:id", authorize(roles.ADMIN), async (req, res) => {
+    const orderId = req.params.id
+    try {
+        const order = await orderDb.deleteById(orderId);
+        res.status(201).json({ status: `Successfully deleted order with id ${orderId}` });
+    } catch (err) {
+        res.status(500).json({ err: err });
+    }
+});
 
 module.exports = router;
