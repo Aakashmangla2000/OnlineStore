@@ -1,4 +1,5 @@
 const productDb = require("../models/product")
+const DB = require('../db');
 
 const productValidations = require("../validations/productValidation")
 
@@ -25,13 +26,19 @@ const getById = async (req, res) => {
 };
 
 const add = async (req, res) => {
-    const { name, description, price, quantity } = req.body
-    const errors = productValidations.validate({ name, description, price, quantity });
-    if (errors.length != 0) {
-        return res.status(400).json({ error: errors });
-    }
+    // const { name, description, price, quantity } = req.body
+    // const errors = productValidations.validate({ name, description, price, quantity });
+    // if (errors.length != 0) {
+    //     return res.status(400).json({ error: errors });
+    // }
     try {
-        const product = await productDb.addProduct({ name, description, price, quantity });
+        const rows = [{ name: "p1", description: "d1", price: 100, quantity: 100, extraData: [1, 2] }, { name: "p1", description: "d1", price: 100, quantity: 100, extraData: [1, 2] }]
+        const chunkSize = 30;
+        DB.batchInsert('product', rows, chunkSize)
+            .returning(['id'])
+            .then(function (data) { console.log(data) })
+            .catch(function (error) { console.log(error) });
+        // const product = await productDb.addProduct({ name, description, price, quantity });
         res.status(201).json({ status: "Successfully added new product" });
     } catch (err) {
         res.status(500).json({ err: err });
