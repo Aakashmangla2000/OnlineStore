@@ -53,8 +53,8 @@ const getById = async (req, res) => {
             if (!user)
                 res.status(404).json({ status: `User with id ${userId} not found` });
             else {
-                const { password, id, deletedAt, ...userD } = user
-                res.status(200).json(userD);
+                const { password, deletedAt, ...userD } = user
+                res.status(200).json({ data: userD });
             }
         } catch (err) {
             res.status(500).json({ err: err });
@@ -76,7 +76,7 @@ const signup = async (req, res) => {
                 const [user] = await userDb.addUser({ firstName, lastName, phone, address, username, password: hashedPassword });
                 const [userRole] = await userDb.addUserRole(user.id);
                 const token = generateAccessToken({ username, userId: user.id, roleId: userRole.roleId });
-                res.status(201).json({ status: "Successfully added new user", token });
+                res.status(201).json({ status: "Successfully added new user", token, data: user });
             }
             else
                 res.status(400).json({ status: "Username already taken" });
@@ -124,8 +124,8 @@ const update = async (req, res) => {
     }
     if (userId == req.user.userId || req.user.roleId == roles.ADMIN)
         try {
-            const user = await userDb.updateUser(userId, { firstName, lastName, phone, address });
-            res.status(201).json({ status: `Successfully updated user with id ${userId}` });
+            const [user] = await userDb.updateUser(userId, { firstName, lastName, phone, address });
+            res.status(201).json({ status: `Successfully updated user with id ${userId}`, data: user });
         } catch (err) {
             res.status(500).json({ err: err });
         }

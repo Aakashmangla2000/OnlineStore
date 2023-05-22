@@ -32,7 +32,7 @@ const add = async (req, res) => {
     }
     try {
         const product = await productDb.addProduct({ name, description, price, quantity });
-        res.status(201).json({ status: "Successfully added new product" });
+        res.status(201).json({ status: "Successfully added new product", data: product });
     } catch (err) {
         res.status(500).json({ err: err });
     }
