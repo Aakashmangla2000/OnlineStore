@@ -4,10 +4,10 @@ const router = require("express").Router();
 router.get("/:index", async (req, res) => {
     const index = req.params.index;
     try {
-        const resp = await elasticClient.indices.exists({
+        const exists = await elasticClient.indices.exists({
             index
         })
-        if (resp) {
+        if (exists) {
             const result = await elasticClient.indices.getMapping({ index });
             res.status(200).json(result);
         }
@@ -20,26 +20,48 @@ router.get("/:index", async (req, res) => {
     }
 });
 
-// router.post("/", async (req, res) => {
-//     const result = await elasticClient.index({
-//         index: "posts",
-//         document: {
-//             title: req.body.title,
-//             author: req.body.author,
-//             content: req.body.content,
-//         },
-//     });
+router.post("/:index", async (req, res) => {
+    const index = req.params.index;
+    const properties = req.body
+    try {
+        const exists = await elasticClient.indices.exists({
+            index
+        })
+        if (!exists) {
+            const result = await elasticClient.indices.create({
+                index,
+                mappings: properties
+            });
+            res.status(201).json({ message: "Created mapping successfully", result });
+        }
+        else {
+            res.status(400).json({ message: "Index already exists" })
+        }
+    }
+    catch (error) {
+        res.status(500).json({ error });
+    }
+});
 
-//     res.send(result);
-// });
+router.delete("/:index", async (req, res) => {
+    const index = req.params.index;
+    try {
+        const exists = await elasticClient.indices.exists({
+            index
+        })
+        if (exists) {
+            const result = await elasticClient.indices.delete({
+                index
+            });
+            res.json({ message: "Deleted index successfully", result });
+        }
+        else {
+            res.status(404).json({ message: "Index not found" })
+        }
+    } catch (error) {
+        res.status(500).json({ error });
+    }
 
-// router.delete("/", async (req, res) => {
-//     const result = await elasticClient.delete({
-//         index: "posts",
-//         id: req.query.id,
-//     });
-
-//     res.json(result);
-// });
+});
 
 module.exports = router;
