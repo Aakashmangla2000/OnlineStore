@@ -13,7 +13,12 @@ const getAll = async (req, res) => {
             index: "users",
             query: { match_all: {} },
         });
-        res.status(200).json({ noOfRows: data.hits.hits.length, data: data.hits.hits });
+        const users = data.hits.hits.map((hit) => {
+            let user = hit._source;
+            delete user.password
+            return user
+        })
+        res.status(200).json({ noOfRows: users.length, data: users });
     } catch (err) {
         res.status(500).json({ err: err });
     }
@@ -21,7 +26,7 @@ const getAll = async (req, res) => {
 
 const index = async (req, res) => {
     try {
-        const users = await userDb.find();
+        const users = await userDb.findForIndexing();
         body = bulkIndexData(users)
         const ress = await elasticClient.bulk({
             refresh: true,
@@ -79,6 +84,7 @@ const login = async (req, res) => {
         if (result.hits.total.value == 0) res.status(404).json({ message: "User not found" });
         else {
             const user = result.hits.hits[0]._source;
+            console.log(user)
             bcrypt.compare(password, user.password, async (err, result) => {
                 if (!result)
                     res.status(401).json({ message: "Wrong Password" });
@@ -98,12 +104,16 @@ const getById = async (req, res) => {
     const userId = req.params.id
     if (userId == req.user.userId || req.user.roleId == roles.ADMIN)
         try {
-            const [user] = await userDb.findById(userId);
-            if (!user)
+            const data = await elasticClient.search({
+                index: "users",
+                query: { match: { id: userId } },
+            });
+            if (data.hits.total.value == 0)
                 res.status(404).json({ status: `User with id ${userId} not found` });
             else {
-                const { password, id, deletedAt, ...userD } = user
-                res.status(200).json(userD);
+                const user = data.hits.hits[0]._source
+                delete user.password
+                res.status(200).json({ data: user });
             }
         } catch (err) {
             res.status(500).json({ err: err });

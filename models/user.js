@@ -2,6 +2,8 @@ const DB = require('../db');
 
 const find = () => DB('customer').select("id", "username", "firstName", "lastName", "phone", "address").where("deletedAt", null).orderBy('id');
 
+const findForIndexing = () => DB('customer').select("id", "username", "firstName", "lastName", "phone", "address", "password").where("deletedAt", null).orderBy('id');
+
 const findById = (id) => DB('customer').select("id", "username", "firstName", "lastName", "phone", "address").where("id", id).andWhere("deletedAt", null);
 
 const findByUsername = (username) => DB('customer').select("id", "username", "password").where("username", username).andWhere("deletedAt", null);
@@ -24,5 +26,6 @@ module.exports = {
     deleteById,
     findByUsername,
     getUserRole,
-    addUserRole
+    addUserRole,
+    findForIndexing
 }
