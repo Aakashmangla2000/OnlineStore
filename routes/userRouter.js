@@ -7,6 +7,7 @@ const auth = require("../middleware/auth")
 const authorize = require("../middleware/authorize")
 const roles = require("../middleware/roles")
 
+router.get("/index", userController.index);
 router.get("/", auth, authorize(roles.ADMIN), userController.getAll);
 router.get("/login", userController.login);
 router.get("/:id", auth, validateId, userController.getById);

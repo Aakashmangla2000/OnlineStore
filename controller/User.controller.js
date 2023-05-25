@@ -1,17 +1,64 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken")
+const elasticClient = require("../elasticClient")
 
 const userDb = require("../models/user")
 const reqBodyValidations = require("../validations/userValidation")
-const roles = require("../middleware/roles")
+const roles = require("../middleware/roles");
 
 const getAll = async (req, res) => {
     try {
-        const users = await userDb.find();
-        res.status(200).json({ noOfRows: users.length, data: users });
+        const data = await elasticClient.search({
+            size: 1000,
+            index: "users",
+            query: { match_all: {} },
+        });
+        res.status(200).json({ noOfRows: data.hits.hits.length, data: data.hits.hits });
     } catch (err) {
         res.status(500).json({ err: err });
     }
+};
+
+const index = async (req, res) => {
+    try {
+        const users = await userDb.find();
+        body = bulkIndexData(users)
+        const ress = await elasticClient.bulk({
+            refresh: true,
+            index: 'users',
+            body,
+        });
+
+        if (ress.errors != false) {
+            console.error('Bulk indexing errors:');
+            for (const item of bulkResponse.items) {
+                if (item.index && item.index.error) {
+                    console.error(
+                        `Error indexing document ${item.index._id}:`,
+                        item.index.error
+                    );
+                }
+            }
+        } else {
+            console.log('Bulk indexing completed successfully.');
+        }
+        res.status(200).json({ noOfRows: users.length, data: users, ress });
+    } catch (err) {
+        console.log(err)
+        res.status(500).json({ err: err });
+    }
+};
+
+const bulkIndexData = (data) => {
+    const body = [];
+    for (const document of data) {
+        delete document.deletedAt
+        body.push(
+            { index: { _index: 'users', _id: document.id } },
+            document,
+        );
+    }
+    return body;
 };
 
 const generateAccessToken = ({ username, userId, roleId }) => {
@@ -25,21 +72,23 @@ const login = async (req, res) => {
         return res.status(400).json({ error });
     }
     try {
-        const [user] = await userDb.findByUsername(username);
-        if (!user) res.status(404).json({ message: "User not found" });
-        else
+        const result = await elasticClient.search({
+            index: "users",
+            query: { match: { username: username } },
+        });
+        if (result.hits.total.value == 0) res.status(404).json({ message: "User not found" });
+        else {
+            const user = result.hits.hits[0]._source;
             bcrypt.compare(password, user.password, async (err, result) => {
                 if (!result)
                     res.status(401).json({ message: "Wrong Password" });
                 else {
-                    let [userRole] = await userDb.getUserRole(user.id);
-                    if (!userRole) {
-                        [userRole] = await userDb.addUserRole(user.id);
-                    }
-                    const token = generateAccessToken({ username, userId: user.id, roleId: userRole.roleId });
-                    res.status(200).json({ status: `Welcome ${username}`, token });
+                    const [userRoles] = await userDb.getUserRole(user.id)
+                    const token = generateAccessToken({ username, userId: user.id, roleId: userRoles.roleId });
+                    res.status(200).json({ status: `Welcome ${username}`, token, data: user });
                 }
             });
+        }
     } catch (err) {
         res.status(500).json({ err: err });
     }
@@ -76,7 +125,13 @@ const signup = async (req, res) => {
                 const [user] = await userDb.addUser({ firstName, lastName, phone, address, username, password: hashedPassword });
                 const [userRole] = await userDb.addUserRole(user.id);
                 const token = generateAccessToken({ username, userId: user.id, roleId: userRole.roleId });
-                res.status(201).json({ status: "Successfully added new user", token });
+                delete user.deletedAt;
+                const result = await elasticClient.index({
+                    index: "users",
+                    id: user.id,
+                    document: user,
+                });
+                res.status(201).json({ status: "Successfully added new user", token, user });
             }
             else
                 res.status(400).json({ status: "Username already taken" });
@@ -155,5 +210,6 @@ module.exports = {
     signup,
     updatePassword,
     update,
-    deleteUser
+    deleteUser,
+    index
 };
