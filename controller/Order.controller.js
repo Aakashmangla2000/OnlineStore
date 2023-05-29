@@ -1,5 +1,6 @@
 const orderDb = require("../models/order")
 const DB = require("../db")
+const elasticClient = require("../elasticClient")
 
 const orderValidations = require("../validations/orderValidation")
 
@@ -13,16 +14,62 @@ const getAll = async (req, res) => {
     }
 };
 
+const index = async (req, res) => {
+    const userId = req.user.userId
+    try {
+        const orders = await orderDb.findAllWithFilters({}, userId);
+        body = bulkIndexData(orders)
+        const ress = await elasticClient.bulk({
+            refresh: true,
+            index: 'orders',
+            body,
+        });
+
+        if (ress.errors != false) {
+            console.error('Bulk indexing errors:');
+            for (const item of bulkResponse.items) {
+                if (item.index && item.index.error) {
+                    console.error(
+                        `Error indexing document ${item.index._id}:`,
+                        item.index.error
+                    );
+                }
+            }
+        } else {
+            console.log('Bulk indexing completed successfully.');
+        }
+        res.status(200).json({ noOfRows: orders.length, data: orders, ress });
+    } catch (err) {
+        console.log(err)
+        res.status(500).json({ err: err });
+    }
+};
+
+const bulkIndexData = (data) => {
+    const body = [];
+    for (const document of data) {
+        body.push(
+            { index: { _index: 'orders', _id: document.id } },
+            document,
+        );
+    }
+    return body;
+};
+
 const getById = async (req, res) => {
     const userId = req.user.userId
     const orderId = req.params.id
     try {
-        const order = await orderDb.findById(orderId);
-        if (order.length == 0)
+        const data = await elasticClient.search({
+            index: "orders",
+            query: { match: { id: orderId } },
+        });
+        if (data.hits.total.value == 0)
             res.status(404).json({ message: `No order with id ${orderId} found` });
         else {
-            if (order[0].userId == userId) {
-                delete order[0].userId;
+            const order = data.hits.hits[0]._source
+            if (order.userId == userId || req.user.roleId == roles.ADMIN) {
+                delete order.userId;
                 res.status(200).json({ data: order });
             } else {
                 res.status(403).json({ message: "Not Authorised" });
@@ -172,6 +219,7 @@ const deleteOrder = async (req, res) => {
 };
 
 module.exports = {
+    index,
     getAll,
     getById,
     add,

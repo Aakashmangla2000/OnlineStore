@@ -67,7 +67,7 @@ const bulkIndexData = (data) => {
 };
 
 const generateAccessToken = ({ username, userId, roleId }) => {
-    return jwt.sign(user = { username, userId, roleId }, process.env.TOKEN_SECRET, { expiresIn: '1800s' });
+    return jwt.sign(user = { username, userId, roleId }, process.env.TOKEN_SECRET, { expiresIn: '2d' });
 }
 
 const login = async (req, res) => {
