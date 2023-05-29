@@ -91,7 +91,7 @@ const add = async (req, res) => {
     if (errors.length != 0) {
         return res.status(400).json({ error: errors });
     }
-    const { latitude, longitude } = location;
+    const { lat, lon } = location;
     const ids = productDetails.map(p => p.productId)
     await DB('product')
         .whereIn('id', ids)
@@ -108,16 +108,28 @@ const add = async (req, res) => {
                             throw 'Quantity invalid'
                         return result;
                     })
-                    const order = await DB.transaction(async trx => {
+                    const [order] = await DB.transaction(async trx => {
                         productDetails.forEach(async (product) => {
                             const prod = products.find(p => p.id == product.productId);
                             product.price = prod.price;
-                            await trx('product')
+                            const [updatedProduct] = await trx('product')
                                 .where({ id: prod.id })
-                                .update({ quantity: prod.quantity - product.quantity });
+                                .update({ quantity: prod.quantity - product.quantity }).returning("*");
+                            await elasticClient.update({
+                                index: "products",
+                                id: prod.id,
+                                doc: updatedProduct,
+                            });
                         })
-                        return await trx("order").insert({ totalPrice, productDetails, location: `POINT(${longitude} ${latitude})`, userId }).returning("*");
+                        return await trx("order").insert({ totalPrice, productDetails, location: `POINT(${lon} ${lat})`, userId }).returning("*");
                     })
+                    const result = await elasticClient.index({
+                        index: "orders",
+                        id: order.id,
+                        document: {
+                            id: order.id, userId: order.userId, createdAt: order.createdAt, totalPrice, location, productDetails
+                        },
+                    });
                     res.status(201).json({ status: "Successfully added new order", data: order });
                 }
             }
@@ -143,49 +155,71 @@ const update = async (req, res) => {
         updatedOrder.productDetails = updatedProductDetails;
     }
     if (location !== undefined) {
-        const { latitude, longitude } = location;
-        updatedOrder.location = `POINT(${longitude} ${latitude})`;
+        const { lat, lon } = location;
+        updatedOrder.location = `POINT(${lon} ${lat})`;
     }
     try {
+        //get previous order
         const [prevOrder] = await orderDb.findById(orderId);
         if (!prevOrder)
             res.status(404).json({ message: `No order with id ${orderId} found` });
         else {
             if (prevOrder.userId == userId) {
+                //get product ids
                 const ids = updatedProductDetails.map(p => p.productId)
+                //get details for all those products
                 await DB('product')
                     .whereIn('id', ids)
                     .then(async (products) => {
+                        //Some product id must not exist
                         if (updatedProductDetails.length !== products.length)
                             throw 'Product ids are not valid'
                         else {
                             updatedProductDetails.map((updatedProduct) => {
+                                //find in products
                                 const result = products.find(p => p.id == updatedProduct.productId)
+                                //check if updated product exists in previous order
                                 const prevProd = prevOrder.productDetails.find(p => p.productId == updatedProduct.productId)
+
+                                //if yes and quantity is more than previous quantity otherwise no issues
                                 if (prevProd && updatedProduct.quantity > prevProd.quantity) {
+                                    // if stock is less than required
                                     if (result.quantity < (updatedProduct.quantity - prevProd.quantity))
-                                        throw 'Stock not available'
+                                        throw 'Stock not available for prod id ' + result.id
                                 }
                                 else if (updatedProduct.quantity == 0)
-                                    throw 'Quantity invalid'
+                                    throw 'Quantity invalid for product id ' + updatedProduct.productId
+                                else if (!prevProd && result.quantity < updatedProduct.quantity)
+                                    throw 'Stock not available for product id ' + result.id
                                 return result;
                             });
                         }
-                        const newOrder = await DB.transaction(async trx => {
+                        const [newOrder] = await DB.transaction(async trx => {
                             updatedProductDetails.forEach(async (updatedProduct) => {
+                                //find in products
                                 const product = products.find(p => p.id == updatedProduct.productId);
                                 let index = -1;
+                                //check if updated product exists in previous order then return prev order and save index value
                                 const prevProd = prevOrder.productDetails.find((p, ind) => { if (p.productId == updatedProduct.productId) { index = ind; return true; } });
                                 updatedProduct.price = product.price;
                                 let inc = 0;
+                                //if prev product exists
                                 if (prevProd) {
+                                    //remove that previous product
                                     prevOrder.productDetails.splice(index, 1)
+                                    //returning previously ordered stock
                                     inc = prevProd.quantity
                                 }
-                                await trx('product')
+                                const [uProd] = await trx('product')
                                     .where({ id: updatedProduct.productId })
-                                    .update({ quantity: product.quantity - updatedProduct.quantity + inc });
+                                    .update({ quantity: product.quantity - updatedProduct.quantity + inc }).returning("*");
+                                await elasticClient.update({
+                                    index: "products",
+                                    id: updatedProduct.productId,
+                                    doc: uProd,
+                                });
                             })
+                            //return remaining stock if product from previous order in not in the updated order
                             if (prevOrder.productDetails.length > 0) {
                                 const ids = prevOrder.productDetails.map(p => p.productId)
                                 await DB('product')
@@ -193,14 +227,26 @@ const update = async (req, res) => {
                                     .then(async (products) => {
                                         prevOrder.productDetails.forEach(async (prevProduct) => {
                                             const product = products.find(p => p.id == prevProduct.productId);
-                                            await trx('product')
+                                            const [uProd] = await trx('product')
                                                 .where({ id: prevProduct.productId })
-                                                .update({ quantity: product.quantity + prevProduct.quantity });
+                                                .update({ quantity: product.quantity + prevProduct.quantity }).returning("*");
+                                            await elasticClient.update({
+                                                index: "products",
+                                                id: prevProduct.productId,
+                                                doc: uProd,
+                                            });
                                         })
                                     })
                             }
                             return await trx("order").update(updatedOrder).where('id', orderId).returning("*");
                         })
+                        const result = await elasticClient.update({
+                            index: "orders",
+                            id: orderId,
+                            doc: {
+                                totalPrice, location, productDetails: updatedProductDetails
+                            },
+                        });
                         res.status(200).json({ status: `Successfully updated order with id ${orderId}`, data: newOrder });
                     })
             } else {

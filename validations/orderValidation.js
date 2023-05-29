@@ -10,9 +10,9 @@ function validate(totalPrice, productDetails, location) {
         errors.push('Invalid geography location');
     }
     else {
-        const { latitude, longitude } = location;
-        if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || longitude < -180 || longitude > 180 || latitude < -90 || latitude > 90)
-            errors.push('Invalid latitude/longitude');
+        const { lat, lon } = location;
+        if (!Number.isFinite(lat) || !Number.isFinite(lon) || lon < -180 || lon > 180 || lat < -90 || lat > 90)
+            errors.push('Invalid lat/lon');
     }
     return errors;
 }
@@ -27,9 +27,9 @@ function validateOnUpdate(totalPrice, productDetails, location) {
         errors.push('Invalid productDetails');
     }
     if (location) {
-        const { latitude, longitude } = location;
-        if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || longitude < -180 || longitude > 180 || latitude < -90 || latitude > 90)
-            errors.push('Invalid latitude/longitude');
+        const { lat, lon } = location;
+        if (!Number.isFinite(lat) || !Number.isFinite(lon) || lon < -180 || lon > 180 || lat < -90 || lat > 90)
+            errors.push('Invalid lat/lon');
     }
     if (!location && !totalPrice && !productDetails)
         errors.push('Invalid request body');

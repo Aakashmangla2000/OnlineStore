@@ -123,8 +123,14 @@ const update = async (req, res) => {
         if (product.length == 0)
             res.status(404).json({ message: `No product with id ${productId} found` });
         else {
-            const updatedProduct = await productDb.updateProduct(productId, { name, description, price, quantity });
-            res.status(201).json({ status: `Successfully updated product with id ${productId}`, updatedProduct });
+            const [updatedProduct] = await productDb.updateProduct(productId, { name, description, price, quantity });
+            updatedProduct.price = +updatedProduct.price
+            const result = await elasticClient.update({
+                index: "products",
+                id: productId,
+                doc: updatedProduct,
+            });
+            res.status(200).json({ status: `Successfully updated product with id ${productId}`, updatedProduct });
         }
     } catch (err) {
         res.status(500).json({ err: err });
