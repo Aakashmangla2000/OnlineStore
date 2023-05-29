@@ -8,7 +8,11 @@ const getAll = async (req, res) => {
     const userId = req.user.userId
     try {
         const fitleredOrders = await orderDb.findAllWithFilters(req.query, userId)
-        res.status(200).json({ noOfRows: fitleredOrders.length, data: fitleredOrders });
+        const orders = fitleredOrders.map((hit) => {
+            let order = hit._source;
+            return order
+        })
+        res.status(200).json({ noOfRows: orders.length, data: orders });
     } catch (err) {
         res.status(500).json({ err: err });
     }

@@ -1,18 +1,41 @@
 const DB = require('../db');
 const queryBuilder = require("../validations/queryBuilder")
+const elasticClient = require("../elasticClient")
 
 const find = () => DB('product').select().orderBy('id');
 
-const findAllWithFilters = ({ name, price, quantity }) => DB('product')
-    .where((qb) => {
-        if (name)
-            qb.where('name', 'like', `%${name}%`);
-        if (price)
-            queryBuilder.filter(qb, price, '"price"')
-        if (quantity)
-            queryBuilder.filter(qb, quantity, '"quantity"')
-    })
-    .orderBy('id');
+const findAllWithFilters2 = ({ name, price, quantity }) => {
+    DB('product')
+        .where((qb) => {
+            if (name)
+                qb.where('name', 'like', `%${name}%`);
+            if (price)
+                queryBuilder.filter(qb, price, '"price"')
+            if (quantity)
+                queryBuilder.filter(qb, quantity, '"quantity"')
+        })
+        .orderBy('id');
+}
+const findAllWithFilters = async ({ name, price, quantity }) => {
+    let query = [];
+    if (name)
+        query.push({
+            match: {
+                name
+            }
+        })
+    if (price)
+        query.push(queryBuilder.filter(price, "price"))
+    if (quantity)
+        query.push(queryBuilder.filter(quantity, "quantity"))
+    console.log(query)
+    const data = await elasticClient.search({
+        size: 1000,
+        index: "products",
+        query: { bool: { must: query } },
+    });
+    return data.hits.hits
+}
 
 const findById = (id) => DB('product').select().where("id", id);
 

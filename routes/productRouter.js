@@ -6,6 +6,7 @@ const validateId = require("../middleware/validateId")
 const authorize = require("../middleware/authorize")
 const roles = require("../middleware/roles")
 
+router.get("/index", productController.index);
 router.get("/", productController.getAll);
 router.get("/:id", validateId, productController.getById);
 router.post("/", authorize(roles.ADMIN), productController.add);

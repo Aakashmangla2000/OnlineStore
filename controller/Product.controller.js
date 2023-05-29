@@ -1,15 +1,62 @@
 const productDb = require("../models/product")
 const DB = require('../db');
+const elasticClient = require("../elasticClient")
 
 const productValidations = require("../validations/productValidation")
 
 const getAll = async (req, res) => {
     try {
         const fitleredProducts = await productDb.findAllWithFilters(req.query)
-        res.status(200).json({ noOfRows: fitleredProducts.length, data: fitleredProducts });
+        const products = fitleredProducts.map((hit) => {
+            let product = hit._source;
+            return product
+        })
+        res.status(200).json({ noOfRows: products.length, data: products });
     } catch (err) {
         res.status(500).json({ err: err });
     }
+};
+
+const index = async (req, res) => {
+    const userId = req.user.userId
+    try {
+        const fitleredProducts = await productDb.findAllWithFilters({})
+        body = bulkIndexData(fitleredProducts)
+        const ress = await elasticClient.bulk({
+            refresh: true,
+            index: 'products',
+            body,
+        });
+
+        if (ress.errors != false) {
+            console.error('Bulk indexing errors:');
+            for (const item of bulkResponse.items) {
+                if (item.index && item.index.error) {
+                    console.error(
+                        `Error indexing document ${item.index._id}:`,
+                        item.index.error
+                    );
+                }
+            }
+        } else {
+            console.log('Bulk indexing completed successfully.');
+        }
+        res.status(200).json({ noOfRows: fitleredProducts.length, data: fitleredProducts, ress });
+    } catch (err) {
+        console.log(err)
+        res.status(500).json({ err: err });
+    }
+};
+
+const bulkIndexData = (data) => {
+    const body = [];
+    for (const document of data) {
+        body.push(
+            { index: { _index: 'products', _id: document.id } },
+            document,
+        );
+    }
+    return body;
 };
 
 const getById = async (req, res) => {
@@ -91,6 +138,7 @@ const deleteProduct = async (req, res) => {
 };
 
 module.exports = {
+    index,
     getAll,
     getById,
     upsert,
