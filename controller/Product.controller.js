@@ -62,31 +62,35 @@ const bulkIndexData = (data) => {
 const getById = async (req, res) => {
     const productId = req.params.id
     try {
-        const product = await productDb.findById(productId);
-        if (product.length == 0)
+        const data = await elasticClient.search({
+            index: "products",
+            query: { match: { id: productId } },
+        });
+        if (data.hits.total.value == 0)
             res.status(404).json({ message: `No product with id ${productId} found` });
-        else
+        else {
+            const product = data.hits.hits[0]._source
             res.status(200).json({ data: product });
+        }
     } catch (err) {
         res.status(500).json({ err: err });
     }
 };
 
 const add = async (req, res) => {
-    // const { name, description, price, quantity } = req.body
-    // const errors = productValidations.validate({ name, description, price, quantity });
-    // if (errors.length != 0) {
-    //     return res.status(400).json({ error: errors });
-    // }
+    const { name, description, price, quantity } = req.body
+    const errors = productValidations.validate({ name, description, price, quantity });
+    if (errors.length != 0) {
+        return res.status(400).json({ error: errors });
+    }
     try {
-        const rows = [{ name: "p1", description: "d1", price: 100, quantity: 100, extraData: [1, 2] }, { name: "p1", description: "d1", price: 100, quantity: 100, extraData: [1, 2] }]
-        const chunkSize = 30;
-        DB.batchInsert('product', rows, chunkSize)
-            .returning(['id'])
-            .then(function (data) { console.log(data) })
-            .catch(function (error) { console.log(error) });
-        // const product = await productDb.addProduct({ name, description, price, quantity });
-        res.status(201).json({ status: "Successfully added new product" });
+        const [product] = await productDb.addProduct({ name, description, price, quantity });
+        const result = await elasticClient.index({
+            index: "products",
+            id: product.id,
+            document: product,
+        });
+        res.status(201).json({ status: "Successfully added new product", data: product });
     } catch (err) {
         res.status(500).json({ err: err });
     }

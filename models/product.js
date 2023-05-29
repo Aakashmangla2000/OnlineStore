@@ -4,18 +4,6 @@ const elasticClient = require("../elasticClient")
 
 const find = () => DB('product').select().orderBy('id');
 
-const findAllWithFilters2 = ({ name, price, quantity }) => {
-    DB('product')
-        .where((qb) => {
-            if (name)
-                qb.where('name', 'like', `%${name}%`);
-            if (price)
-                queryBuilder.filter(qb, price, '"price"')
-            if (quantity)
-                queryBuilder.filter(qb, quantity, '"quantity"')
-        })
-        .orderBy('id');
-}
 const findAllWithFilters = async ({ name, price, quantity }) => {
     let query = [];
     if (name)
