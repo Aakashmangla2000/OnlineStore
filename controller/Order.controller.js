@@ -112,15 +112,18 @@ const update = async (req, res) => {
                                 const result = products.find(p => p.id == updatedProduct.productId)
                                 const prevProd = prevOrder.productDetails.find(p => p.productId == updatedProduct.productId)
                                 if (prevProd && updatedProduct.quantity > prevProd.quantity) {
+                                    // if stock is less than required
                                     if (result.quantity < (updatedProduct.quantity - prevProd.quantity))
-                                        throw 'Stock not available'
+                                        throw 'Stock not available for prod id ' + result.id
                                 }
                                 else if (updatedProduct.quantity == 0)
-                                    throw 'Quantity invalid'
+                                    throw 'Quantity invalid for product id ' + updatedProduct.productId
+                                else if (!prevProd && result.quantity < updatedProduct.quantity)
+                                    throw 'Stock not available for product id ' + result.id
                                 return result;
                             });
                         }
-                        const newOrder = await DB.transaction(async trx => {
+                        const [newOrder] = await DB.transaction(async trx => {
                             updatedProductDetails.forEach(async (updatedProduct) => {
                                 const product = products.find(p => p.id == updatedProduct.productId);
                                 let index = -1;
