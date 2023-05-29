@@ -181,7 +181,7 @@ const updatePassword = async (req, res) => {
 };
 
 const update = async (req, res) => {
-    const userId = req.user.userId
+    const userId = req.params.id
     const { firstName, lastName, phone, address } = req.body
     const error = reqBodyValidations.updateUser(firstName, lastName, phone, address)
     if (error.length > 0) {
@@ -189,9 +189,15 @@ const update = async (req, res) => {
     }
     if (userId == req.user.userId || req.user.roleId == roles.ADMIN)
         try {
-            const user = await userDb.updateUser(userId, { firstName, lastName, phone, address });
-            res.status(201).json({ status: `Successfully updated user with id ${userId}` });
+            const [user] = await userDb.updateUser(userId, { firstName, lastName, phone, address });
+            const result = await elasticClient.update({
+                index: "users",
+                id: user.id,
+                doc: user,
+            });
+            res.status(200).json({ status: `Successfully updated user with id ${userId}`, data: user });
         } catch (err) {
+            console.log(err)
             res.status(500).json({ err: err });
         }
     else
@@ -200,17 +206,25 @@ const update = async (req, res) => {
 
 const deleteUser = async (req, res) => {
     const userId = req.params.id
-    const user = await userDb.findById(userId);
-    if (user.length !== 0) {
-        try {
+    try {
+        const data = await elasticClient.search({
+            index: "users",
+            query: { match: { id: userId } },
+        });
+        if (data.hits.total.value == 0)
+            res.status(404).json({ status: `User with id ${userId} not found` });
+        else {
             await userDb.updateUser(userId, { deletedAt: new Date() });
+            await elasticClient.delete({
+                index: "users",
+                id: userId
+            });
             res.status(200).json({ status: `Successfully deleted user with id ${userId}` });
-        } catch (err) {
-            res.status(500).json({ err: err });
         }
     }
-    else
-        res.status(404).json({ status: `No user found with id ${userId}` });
+    catch (err) {
+        res.status(500).json({ err: err });
+    }
 };
 
 module.exports = {

@@ -14,7 +14,7 @@ const addUserRole = (userId) => DB("userRoles").insert({ userId, roleId: 1 }).re
 
 const addUser = (user) => DB('customer').insert(user).returning("*");
 
-const updateUser = (id, updatedDetails) => DB('customer').where("id", id).where("deletedAt", null).update(updatedDetails)
+const updateUser = (id, updatedDetails) => DB('customer').where("id", id).where("deletedAt", null).update(updatedDetails).returning(["id", "username", "firstName", "lastName", "phone", "address", "password"]);
 
 const deleteById = (id) => DB('customer').where("id", id).del();
 
