@@ -21,7 +21,7 @@ const getAll = async (req, res) => {
 const index = async (req, res) => {
     const userId = req.user.userId
     try {
-        const orders = await orderDb.findAllWithFilters({}, userId);
+        const orders = await orderDb.find();
         body = bulkIndexData(orders)
         const ress = await elasticClient.bulk({
             refresh: true,

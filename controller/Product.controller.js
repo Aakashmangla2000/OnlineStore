@@ -20,7 +20,8 @@ const getAll = async (req, res) => {
 const index = async (req, res) => {
     const userId = req.user.userId
     try {
-        const fitleredProducts = await productDb.findAllWithFilters({})
+        const fitleredProducts = await productDb.find()
+        console.log(fitleredProducts)
         body = bulkIndexData(fitleredProducts)
         const ress = await elasticClient.bulk({
             refresh: true,

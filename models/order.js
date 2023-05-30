@@ -61,6 +61,7 @@ const updateOrder = (id, updatedDetails) => DB('order').where("id", id).update(u
 const deleteById = (id) => DB('order').where("id", id).del();
 
 module.exports = {
+    find,
     findAll,
     findById,
     addOrder,
