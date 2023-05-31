@@ -1,5 +1,4 @@
 const productDb = require("../models/product")
-const DB = require('../db');
 const elasticClient = require("../elasticClient")
 
 const productValidations = require("../validations/productValidation")
@@ -18,7 +17,6 @@ const getAll = async (req, res) => {
 };
 
 const index = async (req, res) => {
-    const userId = req.user.userId
     try {
         const fitleredProducts = await productDb.find()
         console.log(fitleredProducts)

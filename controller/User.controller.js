@@ -79,12 +79,11 @@ const login = async (req, res) => {
     try {
         const result = await elasticClient.search({
             index: "users",
-            query: { match: { username: username } },
+            query: { term: { "username": { value: username } } },
         });
         if (result.hits.total.value == 0) res.status(404).json({ message: "User not found" });
         else {
             const user = result.hits.hits[0]._source;
-            console.log(user)
             bcrypt.compare(password, user.password, async (err, result) => {
                 if (!result)
                     res.status(401).json({ message: "Wrong Password" });

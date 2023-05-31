@@ -10,8 +10,8 @@ router.get("/index", productController.index);
 router.get("/", productController.getAll);
 router.get("/:id", validateId, productController.getById);
 router.post("/", authorize(roles.ADMIN), productController.add);
-router.post("/upsert", authorize(roles.ADMIN), productController.upsert);
+// router.post("/upsert", authorize(roles.ADMIN), productController.upsert);
 router.put("/:id", authorize(roles.ADMIN), validateId, productController.update);
-router.delete("/:id", authorize(roles.ADMIN), validateId, productController.deleteProduct);
+// router.delete("/:id", authorize(roles.ADMIN), validateId, productController.deleteProduct);
 
 module.exports = router;

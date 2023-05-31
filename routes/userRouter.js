@@ -12,7 +12,7 @@ router.get("/", auth, authorize(roles.ADMIN), userController.getAll);
 router.get("/login", userController.login);
 router.get("/:id", auth, validateId, userController.getById);
 router.post("/signup", userController.signup);
-router.put("/updatePassword", auth, validateId, userController.signup);
+// router.put("/updatePassword", auth, validateId, userController.signup);
 router.put("/:id", auth, validateId, userController.update);
 router.delete("/:id", auth, authorize(roles.ADMIN), validateId, userController.deleteUser);
 

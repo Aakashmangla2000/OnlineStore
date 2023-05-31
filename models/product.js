@@ -16,7 +16,6 @@ const findAllWithFilters = async ({ name, price, quantity }) => {
         query.push(queryBuilder.filter(price, "price"))
     if (quantity)
         query.push(queryBuilder.filter(quantity, "quantity"))
-    console.log(query)
     const data = await elasticClient.search({
         size: 1000,
         index: "products",

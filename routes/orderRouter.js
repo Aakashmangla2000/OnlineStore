@@ -11,6 +11,6 @@ router.get("/", orderController.getAll);
 router.get("/:id", validateId, orderController.getById);
 router.post("/", orderController.add);
 router.put("/:id", validateId, orderController.update);
-router.delete("/:id", authorize(roles.ADMIN), orderController.deleteOrder);
+// router.delete("/:id", authorize(roles.ADMIN), orderController.deleteOrder);
 
 module.exports = router;
