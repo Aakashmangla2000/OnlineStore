@@ -1,6 +1,8 @@
 const orderDb = require("../models/order")
+const elasticService = require("../models/es-queries")
 const DB = require("../db")
 const elasticClient = require("../elasticClient")
+const roles = require("../middleware/roles");
 
 const orderValidations = require("../validations/orderValidation")
 
@@ -39,9 +41,9 @@ const index = async (req, res) => {
                     );
                 }
             }
-        } else {
+        } else
             console.log('Bulk indexing completed successfully.');
-        }
+
         res.status(200).json({ noOfRows: orders.length, data: orders, ress });
     } catch (err) {
         console.log(err)
@@ -64,21 +66,16 @@ const getById = async (req, res) => {
     const userId = req.user.userId
     const orderId = req.params.id
     try {
-        const data = await elasticClient.search({
-            index: "orders",
-            query: { match: { id: orderId } },
-        });
-        if (data.hits.total.value == 0)
-            res.status(404).json({ message: `No order with id ${orderId} found` });
-        else {
-            const order = data.hits.hits[0]._source
-            if (order.userId == userId || req.user.roleId == roles.ADMIN) {
-                delete order.userId;
-                res.status(200).json({ data: order });
-            } else {
-                res.status(403).json({ message: "Not Authorised" });
-            }
-        }
+        await elasticService.getById("orders", orderId)
+            .then((data) => {
+                const order = data._source
+                if (order.userId == userId || req.user.roleId == roles.ADMIN) {
+                    delete order.userId;
+                    res.status(200).json({ data: order });
+                } else
+                    res.status(403).json({ message: "Not Authorised" });
+            })
+            .catch((err) => res.status(404).json({ message: `No order with id ${orderId} found` }))
     } catch (err) {
         res.status(500).json({ err: err });
     }
@@ -115,21 +112,15 @@ const add = async (req, res) => {
                             const [updatedProduct] = await trx('product')
                                 .where({ id: prod.id })
                                 .update({ quantity: prod.quantity - product.quantity }).returning("*");
-                            await elasticClient.update({
-                                index: "products",
-                                id: prod.id,
-                                doc: updatedProduct,
-                            });
+                            await elasticService.update("products", updatedProduct, prod.id)
                         })
                         return await trx("order").insert({ totalPrice, productDetails, location: `POINT(${lon} ${lat})`, userId }).returning("*");
                     })
-                    const result = await elasticClient.index({
-                        index: "orders",
-                        id: order.id,
-                        document: {
-                            id: order.id, userId: order.userId, createdAt: order.createdAt, totalPrice, location, productDetails
-                        },
-                    });
+                    await elasticService.index(
+                        "orders",
+                        { id: order.id, userId: order.userId, createdAt: order.createdAt, totalPrice, location, productDetails },
+                        order.id
+                    );
                     res.status(201).json({ status: "Successfully added new order", data: order });
                 }
             }
@@ -213,11 +204,7 @@ const update = async (req, res) => {
                                 const [uProd] = await trx('product')
                                     .where({ id: updatedProduct.productId })
                                     .update({ quantity: product.quantity - updatedProduct.quantity + inc }).returning("*");
-                                await elasticClient.update({
-                                    index: "products",
-                                    id: updatedProduct.productId,
-                                    doc: uProd,
-                                });
+                                await elasticService.update("products", uProd, updatedProduct.productId,);
                             })
                             //return remaining stock if product from previous order in not in the updated order
                             if (prevOrder.productDetails.length > 0) {
@@ -230,23 +217,13 @@ const update = async (req, res) => {
                                             const [uProd] = await trx('product')
                                                 .where({ id: prevProduct.productId })
                                                 .update({ quantity: product.quantity + prevProduct.quantity }).returning("*");
-                                            await elasticClient.update({
-                                                index: "products",
-                                                id: prevProduct.productId,
-                                                doc: uProd,
-                                            });
+                                            await elasticService.update("products", uProd, prevProduct.productId);
                                         })
                                     })
                             }
                             return await trx("order").update(updatedOrder).where('id', orderId).returning("*");
                         })
-                        const result = await elasticClient.update({
-                            index: "orders",
-                            id: orderId,
-                            doc: {
-                                totalPrice, location, productDetails: updatedProductDetails
-                            },
-                        });
+                        await elasticService.update("orders", { totalPrice, location, productDetails: updatedProductDetails }, orderId);
                         res.status(200).json({ status: `Successfully updated order with id ${orderId}`, data: newOrder });
                     })
             } else {
@@ -261,7 +238,7 @@ const update = async (req, res) => {
 const deleteOrder = async (req, res) => {
     const orderId = req.params.id
     try {
-        const order = await orderDb.deleteById(orderId);
+        await orderDb.deleteById(orderId);
         res.status(201).json({ status: `Successfully deleted order with id ${orderId}` });
     } catch (err) {
         res.status(500).json({ err: err });

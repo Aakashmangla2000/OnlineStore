@@ -11,23 +11,18 @@ const find = () =>
         .orderBy('id');
 
 const findAllWithFilters = async ({ createdAt, totalPrice, productsId, productsPrice, productsQuantity, latitude, longitude, distance }, userId) => {
-    if (productsId) {
-        productsId = productsId.split(',');
-    }
+    if (productsId) productsId = productsId.split(',');
     let query = [];
     let filter;
-    if (createdAt) {
-        query.push(queryBuilder.filter(createdAt, "createdAt"))
-    }
+    if (createdAt) query.push(queryBuilder.filter(createdAt, "createdAt"))
     if (totalPrice)
         query.push(queryBuilder.filter(totalPrice, "totalPrice"))
-    if (productsId) {
+    if (productsId)
         filter = {
             terms: {
                 "productDetails.productId": productsId
             }
         }
-    }
     if (productsPrice)
         query.push(queryBuilder.filter(productsPrice, "productDetails.price"))
     if (productsQuantity)
