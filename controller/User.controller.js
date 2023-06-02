@@ -3,16 +3,13 @@ const jwt = require("jsonwebtoken")
 const elasticClient = require("../elasticClient")
 
 const userDb = require("../models/user")
+const elasticService = require("../models/es-queries")
 const reqBodyValidations = require("../validations/userValidation")
 const roles = require("../middleware/roles");
 
 const getAll = async (req, res) => {
     try {
-        const data = await elasticClient.search({
-            size: 1000,
-            index: "users",
-            query: { match_all: {} },
-        });
+        const data = await elasticService.getAll("users")
         const users = data.hits.hits.map((hit) => {
             let user = hit._source;
             delete user.password
@@ -77,10 +74,7 @@ const login = async (req, res) => {
         return res.status(400).json({ error });
     }
     try {
-        const result = await elasticClient.search({
-            index: "users",
-            query: { term: { "username": { value: username } } },
-        });
+        const result = await elasticService.termSearch("users", "username", username)
         if (result.hits.total.value == 0) res.status(404).json({ message: "User not found" });
         else {
             const user = result.hits.hits[0]._source;
@@ -90,6 +84,7 @@ const login = async (req, res) => {
                 else {
                     const [userRoles] = await userDb.getUserRole(user.id)
                     const token = generateAccessToken({ username, userId: user.id, roleId: userRoles.roleId });
+                    delete user.password
                     res.status(200).json({ status: `Welcome ${username}`, token, data: user });
                 }
             });
@@ -103,17 +98,15 @@ const getById = async (req, res) => {
     const userId = req.params.id
     if (userId == req.user.userId || req.user.roleId == roles.ADMIN)
         try {
-            const data = await elasticClient.search({
-                index: "users",
-                query: { match: { id: userId } },
-            });
-            if (data.hits.total.value == 0)
-                res.status(404).json({ status: `User with id ${userId} not found` });
-            else {
-                const user = data.hits.hits[0]._source
-                delete user.password
-                res.status(200).json({ data: user });
-            }
+            await elasticService.getById("users", userId)
+                .then((data) => {
+                    const user = data._source
+                    delete user.password
+                    res.status(200).json({ data: user });
+                })
+                .catch((err) => {
+                    return res.status(404).json({ status: `User with id ${userId} not found` });
+                })
         } catch (err) {
             res.status(500).json({ err: err });
         }
@@ -135,11 +128,8 @@ const signup = async (req, res) => {
                 const [userRole] = await userDb.addUserRole(user.id);
                 const token = generateAccessToken({ username, userId: user.id, roleId: userRole.roleId });
                 delete user.deletedAt;
-                const result = await elasticClient.index({
-                    index: "users",
-                    id: user.id,
-                    document: user,
-                });
+                delete user.password
+                await elasticService.index("users", user, user.id)
                 res.status(201).json({ status: "Successfully added new user", token, user });
             }
             else
@@ -189,11 +179,8 @@ const update = async (req, res) => {
     if (userId == req.user.userId || req.user.roleId == roles.ADMIN)
         try {
             const [user] = await userDb.updateUser(userId, { firstName, lastName, phone, address });
-            const result = await elasticClient.update({
-                index: "users",
-                id: user.id,
-                doc: user,
-            });
+            await elasticService.update("users", user, user.id)
+            delete user.password
             res.status(200).json({ status: `Successfully updated user with id ${userId}`, data: user });
         } catch (err) {
             console.log(err)
@@ -206,20 +193,15 @@ const update = async (req, res) => {
 const deleteUser = async (req, res) => {
     const userId = req.params.id
     try {
-        const data = await elasticClient.search({
-            index: "users",
-            query: { match: { id: userId } },
-        });
-        if (data.hits.total.value == 0)
-            res.status(404).json({ status: `User with id ${userId} not found` });
-        else {
-            await userDb.updateUser(userId, { deletedAt: new Date() });
-            await elasticClient.delete({
-                index: "users",
-                id: userId
+        await elasticService.getById("users", userId)
+            .then(async _ => {
+                await userDb.updateUser(userId, { deletedAt: new Date() });
+                await elasticService.deleteDoc("users", userId)
+                res.status(200).json({ status: `Successfully deleted user with id ${userId}` });
+            })
+            .catch((err) => {
+                return res.status(404).json({ status: `User with id ${userId} not found` });
             });
-            res.status(200).json({ status: `Successfully deleted user with id ${userId}` });
-        }
     }
     catch (err) {
         res.status(500).json({ err: err });
