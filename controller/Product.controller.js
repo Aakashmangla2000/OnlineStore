@@ -1,4 +1,5 @@
 const productDb = require("../models/product")
+const elasticService = require("../models/es-queries")
 const elasticClient = require("../elasticClient")
 
 const productValidations = require("../validations/productValidation")
@@ -61,16 +62,14 @@ const bulkIndexData = (data) => {
 const getById = async (req, res) => {
     const productId = req.params.id
     try {
-        const data = await elasticClient.search({
-            index: "products",
-            query: { match: { id: productId } },
-        });
-        if (data.hits.total.value == 0)
-            res.status(404).json({ message: `No product with id ${productId} found` });
-        else {
-            const product = data.hits.hits[0]._source
-            res.status(200).json({ data: product });
-        }
+        await elasticService.getById("products", productId)
+            .then((data) => {
+                const product = data._source
+                res.status(200).json({ data: product });
+            })
+            .catch((err) => {
+                return res.status(404).json({ message: `No product with id ${productId} found` });
+            })
     } catch (err) {
         res.status(500).json({ err: err });
     }
@@ -84,11 +83,7 @@ const add = async (req, res) => {
     }
     try {
         const [product] = await productDb.addProduct({ name, description, price, quantity });
-        const result = await elasticClient.index({
-            index: "products",
-            id: product.id,
-            document: product,
-        });
+        await elasticService.index("products", product, product.id);
         res.status(201).json({ status: "Successfully added new product", data: product });
     } catch (err) {
         res.status(500).json({ err: err });
@@ -124,11 +119,7 @@ const update = async (req, res) => {
         else {
             const [updatedProduct] = await productDb.updateProduct(productId, { name, description, price, quantity });
             updatedProduct.price = +updatedProduct.price
-            const result = await elasticClient.update({
-                index: "products",
-                id: productId,
-                doc: updatedProduct,
-            });
+            await elasticService.index("products", updatedProduct, productId);
             res.status(200).json({ status: `Successfully updated product with id ${productId}`, updatedProduct });
         }
     } catch (err) {
